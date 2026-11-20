@@ -103,13 +103,28 @@ $("#open").addEventListener("click",()=>{
 $("#close").addEventListener("click",()=>$("#modal").close());
 $("#form").addEventListener("submit",event=>{
   event.preventDefault();
-  const data = new FormData(event.currentTarget), amount = Number(data.get("amount"));
-  if (!Number.isFinite(amount) || amount <= 0) return;
+  const data = new FormData(event.currentTarget);
+  const amount = parseAmount(data.get("amount"));
   const title = String(data.get("title") || "").trim();
   const date = String(data.get("date") || "");
   const type = String(data.get("type") || "");
   const category = String(data.get("category") || "");
-  if (!title || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !["income", "expense"].includes(type)) return;
+
+  if (!title) { showToast("Digite uma descrição para o lançamento."); return; }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    showToast("Digite um valor válido. Exemplo: 25,90.");
+    $("#form").elements.amount.focus();
+    return;
+  }
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    showToast("Escolha uma data válida.");
+    $("#form").elements.date.focus();
+    return;
+  }
+  if (!["income", "expense"].includes(type) || !category) {
+    showToast("Confira o tipo e a categoria do lançamento.");
+    return;
+  }
 
   const entry = {id:Date.now().toString(36)+Math.random().toString(36).slice(2),title,amount,date,type,category,createdAt:Date.now()};
   entries.push(entry);
