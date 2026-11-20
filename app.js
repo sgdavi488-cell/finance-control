@@ -1,10 +1,10 @@
 const KEY = "fc-entries-v1";
 const $ = (s) => document.querySelector(s);
 function parseAmount(value) {
-  const raw = String(value || "").trim().replace(/\\s/g, "");
+  const raw = String(value || "").trim().replace(/\s/g, "");
   if (!raw) return NaN;
   const normalized = raw.includes(",")
-    ? raw.replace(/\\./g, "").replace(",", ".")
+    ? raw.replace(/\./g, "").replace(",", ".")
     : raw;
   return Number(normalized);
 }
