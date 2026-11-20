@@ -2,6 +2,12 @@ const KEY = "fc-entries-v1";
 const $ = (s) => document.querySelector(s);
 const money = (n) => new Intl.NumberFormat("pt-BR", {style:"currency",currency:"BRL"}).format(n);
 const now = new Date();
+const localDate = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+};
 let entries = readEntries();
 
 function readEntries() {
@@ -14,7 +20,7 @@ function readEntries() {
       typeof entry.title === "string" &&
       typeof entry.category === "string" &&
       Number.isFinite(entry.amount) && entry.amount > 0 &&
-      /^\\d{4}-\\d{2}-\\d{2}$/.test(entry.date) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(entry.date) &&
       ["income", "expense"].includes(entry.type)
     );
   } catch {
@@ -30,7 +36,7 @@ function saveEntries() {
     return false;
   }
 }
-function selectedMonth() { return $("#month").value || now.toISOString().slice(0,7); }
+function selectedMonth() { return $("#month").value || localDate().slice(0,7); }
 function monthEntries() { return entries.filter(e => e.date.slice(0,7) === selectedMonth()); }
 function safe(value) {
   return String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
@@ -83,7 +89,7 @@ function showToast(message) {
 $("#month").value = now.toISOString().slice(0,7);
 $("#open").addEventListener("click",()=>{
   $("#form").reset();
-  $("#form").elements.date.value = now.toISOString().slice(0,10);
+  $("#form").elements.date.value = localDate();
   $("#modal").showModal();
 });
 $("#close").addEventListener("click",()=>$("#modal").close());
@@ -95,7 +101,7 @@ $("#form").addEventListener("submit",event=>{
   const date = String(data.get("date") || "");
   const type = String(data.get("type") || "");
   const category = String(data.get("category") || "");
-  if (!title || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !["income", "expense"].includes(type)) return;
+  if (!title || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !["income", "expense"].includes(type)) return;
 
   const entry = {id:Date.now().toString(36)+Math.random().toString(36).slice(2),title,amount,date,type,category,createdAt:Date.now()};
   entries.push(entry);
