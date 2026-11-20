@@ -5,10 +5,31 @@ const now = new Date();
 let entries = readEntries();
 
 function readEntries() {
-  try { return JSON.parse(localStorage.getItem(KEY)) || []; }
-  catch { return []; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY)) || [];
+    if (!Array.isArray(saved)) return [];
+    return saved.filter(entry =>
+      entry &&
+      typeof entry.id === "string" &&
+      typeof entry.title === "string" &&
+      typeof entry.category === "string" &&
+      Number.isFinite(entry.amount) && entry.amount > 0 &&
+      /^\\d{4}-\\d{2}-\\d{2}$/.test(entry.date) &&
+      ["income", "expense"].includes(entry.type)
+    );
+  } catch {
+    return [];
+  }
 }
-function saveEntries() { localStorage.setItem(KEY, JSON.stringify(entries)); }
+function saveEntries() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(entries));
+    return true;
+  } catch {
+    showToast("Não foi possível salvar. Verifique o espaço disponível no navegador.");
+    return false;
+  }
+}
 function selectedMonth() { return $("#month").value || now.toISOString().slice(0,7); }
 function monthEntries() { return entries.filter(e => e.date.slice(0,7) === selectedMonth()); }
 function safe(value) {
@@ -70,16 +91,32 @@ $("#form").addEventListener("submit",event=>{
   event.preventDefault();
   const data = new FormData(event.currentTarget), amount = Number(data.get("amount"));
   if (!Number.isFinite(amount) || amount <= 0) return;
-  entries.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2),title:data.get("title").trim(),amount,date:data.get("date"),type:data.get("type"),category:data.get("category"),createdAt:Date.now()});
-  saveEntries(); $("#month").value = data.get("date").slice(0,7); $("#modal").close(); render(); showToast("Lançamento salvo. Tudo no lugar.");
+  const title = String(data.get("title") || "").trim();
+  const date = String(data.get("date") || "");
+  const type = String(data.get("type") || "");
+  const category = String(data.get("category") || "");
+  if (!title || !/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !["income", "expense"].includes(type)) return;
+
+  const entry = {id:Date.now().toString(36)+Math.random().toString(36).slice(2),title,amount,date,type,category,createdAt:Date.now()};
+  entries.push(entry);
+  if (!saveEntries()) {
+    entries.pop();
+    return;
+  }
+  $("#month").value = date.slice(0,7); $("#modal").close(); render(); showToast("Lançamento salvo. Tudo no lugar.");
 });
 $("#month").addEventListener("change",render);
 $("#search").addEventListener("input",renderList);
 $("#filter").addEventListener("change",renderList);
 $("#list").addEventListener("click",event=>{
   const button = event.target.closest("[data-id]"); if (!button) return;
+  const previousEntries = entries;
   entries = entries.filter(item=>item.id !== button.dataset.id);
-  saveEntries(); render(); showToast("Lançamento removido.");
+  if (!saveEntries()) {
+    entries = previousEntries;
+    return;
+  }
+  render(); showToast("Lançamento removido.");
 });
 $("#modal").addEventListener("click",event=>{if(event.target === $("#modal")) $("#modal").close();});
 render();
